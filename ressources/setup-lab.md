@@ -246,6 +246,89 @@ ping 172.22.135.10   # adapter l'IP
 
 ---
 
+## 5 bis. Raccourci : le wrapper `lab-up.sh` (multipass **ou** incus)
+
+Pour éviter de retaper la création des VMs **et** l'injection de la clé SSH, le dépôt
+fournit un script qui fait tout, **avec la même commande pour tout le monde** :
+
+```bash
+# Depuis la racine du projet TaskFlow (où se trouve ressources/lab/)
+./ressources/lab/lab-up.sh      # crée taskflow-web1/web2 + injecte ~/.ssh/taskflow_lab + génère un inventaire
+./ressources/lab/lab-down.sh    # supprime les VMs
+```
+
+Le script **auto-détecte le backend** :
+- `multipass` s'il est présent (étudiants Windows/macOS/Linux) ;
+- `incus` sinon (formateur sous NixOS — voir 5 ter).
+
+On peut le forcer : `LAB_BACKEND=incus ./ressources/lab/lab-up.sh`.
+Il écrit un inventaire prêt à l'emploi dans `inventory.generated.ini` (à copier dans
+`ansible/inventory/hosts.ini`). La suite (Ansible, k3d) est alors **identique** quel que soit le backend.
+
+---
+
+## 5 ter. Formateur sous NixOS (sans Multipass) — Incus
+
+Multipass n'est pas packagé sur NixOS (distribué via snap par Canonical). On le remplace
+par **Incus** (successeur de LXD), qui lance de vraies VMs KVM à partir d'images cloud Ubuntu
+avec cloud-init — exactement le modèle de Multipass. `systemd` et `UFW` fonctionnent donc
+normalement dans les VMs (indispensable : le playbook J1 configure UFW, le rôle J2 gère nginx en service).
+
+### 1. Activer Incus dans la configuration NixOS
+
+```nix
+# configuration.nix (ou un module dédié)
+virtualisation.incus.enable = true;
+
+# Donner les droits à ton utilisateur (adapter le nom)
+users.users.fabrice.extraGroups = [ "incus-admin" ];
+
+# Recommandé pour le réseau des instances
+networking.nftables.enable = true;
+```
+
+```bash
+sudo nixos-rebuild switch
+# Recharger l'appartenance au groupe (ou se reconnecter)
+newgrp incus-admin
+```
+
+### 2. Initialiser Incus (une seule fois)
+
+```bash
+incus admin init --minimal
+incus profile list        # doit répondre sans erreur
+```
+
+### 3. Lancer le lab
+
+```bash
+LAB_BACKEND=incus ./ressources/lab/lab-up.sh
+```
+
+Ce que fait le script en Incus :
+
+```bash
+# équivalent manuel, pour info
+incus launch images:ubuntu/22.04 taskflow-web1 --vm \
+  -c limits.cpu=1 -c limits.memory=1GiB \
+  -c user.user-data="$(printf '#cloud-config\nssh_authorized_keys:\n  - %s\n' "$(cat ~/.ssh/taskflow_lab.pub)")"
+incus list taskflow-web1 -c4 --format csv   # récupérer l'IPv4
+```
+
+> L'agent Incus (présent dans l'image cloud) met parfois ~1 min à remonter l'IP : le script attend automatiquement.
+
+### 4. Et après ?
+
+Tout est identique aux étudiants : `ansible web -m ping`, `ansible-playbook playbooks/provision.yml`,
+`k3d cluster create taskflow ...`, etc. **Seule la création des VMs diffère** ; les commandes Ansible/Kubernetes
+sont les mêmes, ce qui te permet de dérouler le TP exactement comme en classe.
+
+> Alternative homelab : tu peux aussi créer 2 VMs Ubuntu sur ton **Proxmox** et pointer l'inventaire
+> dessus (`ansible_host=<IP Proxmox>`) — encore plus réaliste, mais hors du laptop.
+
+---
+
 ## 6. Configuration SSH pour Ansible
 
 ### 6.1 Générer la paire de clés

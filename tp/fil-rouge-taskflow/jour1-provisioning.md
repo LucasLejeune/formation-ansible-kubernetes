@@ -22,6 +22,11 @@ Consultez [`../../ressources/setup-lab.md`](../../ressources/setup-lab.md) si l'
 
 ## Étape 1 : Créer les VMs Multipass (15 min)
 
+> **Raccourci (et alternative sans Multipass).** Le dépôt fournit un wrapper qui crée les 2 VMs
+> et injecte la clé SSH en une commande : `./ressources/lab/lab-up.sh` (auto-détecte Multipass ;
+> bascule sur **Incus** si Multipass est absent, ex. sous NixOS). Voir `ressources/setup-lab.md`
+> §5 bis/5 ter. Les étapes manuelles ci-dessous restent la référence pédagogique.
+
 ### 1.1 Lancer les deux VMs
 
 ```bash
