@@ -1,0 +1,52 @@
+# =============================================================================
+# Configuration de {{ app_name | upper }}
+# Généré automatiquement par Ansible — NE PAS MODIFIER MANUELLEMENT
+# Hôte          : {{ inventory_hostname }}
+# Environnement : {{ app_env }}
+# Date          : {{ ansible_date_time.iso8601 | default('inconnue') }}
+# =============================================================================
+
+[server]
+name     = {{ app_name }}
+port     = {{ app_port }}
+env      = {{ app_env }}
+log_level = {{ app_log_level | default('info') }}
+
+{% if app_debug %}
+# MODE DEBUG ACTIVÉ — ne pas utiliser en production !
+debug    = true
+verbose_errors = true
+{% else %}
+debug    = false
+{% endif %}
+
+[limits]
+max_connections    = {{ app_max_connections }}
+timeout_seconds    = {{ app_timeout_seconds }}
+
+[system]
+# Informations collectées depuis les facts Ansible
+os_family     = {{ ansible_os_family | default('unknown') }}
+os_version    = {{ ansible_distribution | default('unknown') }} {{ ansible_distribution_version | default('') }}
+python_version = {{ ansible_python_version | default('unknown') }}
+
+[features]
+# Liste des fonctionnalités configurées
+{% for feature in app_features %}
+{{ feature.name }} = {{ 'enabled' if feature.enabled else 'disabled' }}
+{% endfor %}
+
+{% if app_env == 'production' %}
+[security]
+# Bloc conditionnel : apparaît uniquement en production
+ssl_required   = true
+hsts_enabled   = true
+csp_enabled    = true
+{% elif app_env == 'staging' %}
+[security]
+ssl_required   = true
+hsts_enabled   = false
+csp_enabled    = false
+{% else %}
+# Sécurité désactivée en {{ app_env }}
+{% endif %}

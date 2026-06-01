@@ -1,0 +1,55 @@
+---
+# =============================================================================
+# TP Jour 1 — Provisioning de l'infrastructure
+# Configuration de base, idempotente, des serveurs web TaskFlow.
+# Exécution : ansible-playbook playbooks/provision.yml
+# =============================================================================
+- name: Provisionner les serveurs web TaskFlow
+  hosts: web
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Mettre à jour le cache APT (valide 1h)
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Installer les paquets de base
+      ansible.builtin.apt:
+        name: "{{ base_packages }}"
+        state: present
+
+    - name: Définir le fuseau horaire
+      community.general.timezone:
+        name: "{{ timezone }}"
+
+    - name: Créer l'utilisateur de déploiement
+      ansible.builtin.user:
+        name: "{{ deploy_user }}"
+        shell: /bin/bash
+        groups: sudo
+        append: true
+        state: present
+
+    - name: Autoriser SSH dans le pare-feu (UFW)
+      community.general.ufw:
+        rule: allow
+        name: OpenSSH
+
+    - name: Autoriser le trafic HTTP
+      community.general.ufw:
+        rule: allow
+        port: "80"
+        proto: tcp
+
+    - name: Activer UFW
+      community.general.ufw:
+        state: enabled
+        policy: deny
+        direction: incoming
+
+  post_tasks:
+    - name: Afficher un récapitulatif
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} provisionné ({{ ansible_distribution }} {{ ansible_distribution_version }})"

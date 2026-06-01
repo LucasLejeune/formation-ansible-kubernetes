@@ -1,0 +1,148 @@
+---
+# Playbook de démonstration : piloter Kubernetes depuis Ansible
+# Collection requise : kubernetes.core
+# Prérequis Python : pip install kubernetes
+- name: Demo - Ansible pilote Kubernetes avec kubernetes.core
+  hosts: all
+  gather_facts: false
+
+  vars:
+    # Namespace cible (sera créé s'il n'existe pas)
+    k8s_namespace: "demo-ansible"
+    # Nombre de réplicas du déploiement
+    k8s_replicas: 2
+    # Image à déployer (publique, sans build)
+    k8s_image: "nginx:alpine"
+    # Nom de l'application
+    app_name: "webserver"
+
+  tasks:
+    # -------------------------------------------------------------------------
+    # Tâche 1 : Créer le namespace
+    # L'option state: present est idempotente : sans effet si le namespace existe
+    # -------------------------------------------------------------------------
+    - name: Créer le namespace {{ k8s_namespace }}
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ k8s_namespace }}"
+            labels:
+              app.kubernetes.io/managed-by: "ansible"
+              environment: "demo"
+
+    # -------------------------------------------------------------------------
+    # Tâche 2 : Déployer l'application via un Deployment
+    # state: present est idempotent : Ansible compare la spec et n'agit que si
+    # une différence est détectée (équivalent de kubectl apply)
+    # -------------------------------------------------------------------------
+    - name: Déployer {{ app_name }} ({{ k8s_replicas }} réplicas)
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: "{{ app_name }}"
+            namespace: "{{ k8s_namespace }}"
+            labels:
+              app: "{{ app_name }}"
+              app.kubernetes.io/managed-by: "ansible"
+          spec:
+            replicas: "{{ k8s_replicas }}"
+            selector:
+              matchLabels:
+                app: "{{ app_name }}"
+            template:
+              metadata:
+                labels:
+                  app: "{{ app_name }}"
+              spec:
+                containers:
+                  - name: nginx
+                    image: "{{ k8s_image }}"
+                    ports:
+                      - containerPort: 80
+                    readinessProbe:
+                      httpGet:
+                        path: /
+                        port: 80
+                      initialDelaySeconds: 5
+                      periodSeconds: 5
+                    resources:
+                      requests:
+                        cpu: "50m"
+                        memory: "32Mi"
+                      limits:
+                        cpu: "100m"
+                        memory: "64Mi"
+
+    # -------------------------------------------------------------------------
+    # Tâche 3 : Créer le Service ClusterIP
+    # -------------------------------------------------------------------------
+    - name: Créer le Service pour {{ app_name }}
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: "{{ app_name }}"
+            namespace: "{{ k8s_namespace }}"
+            labels:
+              app: "{{ app_name }}"
+          spec:
+            type: ClusterIP
+            selector:
+              app: "{{ app_name }}"
+            ports:
+              - name: http
+                port: 80
+                targetPort: 80
+
+    # -------------------------------------------------------------------------
+    # Tâche 4 : Attendre que le Deployment soit disponible
+    # kubernetes.core.k8s_info avec wait permet de bloquer jusqu'à la condition
+    # -------------------------------------------------------------------------
+    - name: Attendre que le Deployment soit disponible
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: "{{ app_name }}"
+        namespace: "{{ k8s_namespace }}"
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 120
+      register: deployment_info
+
+    # -------------------------------------------------------------------------
+    # Tâche 5 : Afficher un résumé de l'état du déploiement
+    # -------------------------------------------------------------------------
+    - name: Afficher le statut du Deployment
+      ansible.builtin.debug:
+        msg: >
+          Déploiement {{ app_name }} dans {{ k8s_namespace }} :
+          réplicas désirés={{ deployment_info.resources[0].spec.replicas }},
+          réplicas disponibles={{ deployment_info.resources[0].status.availableReplicas | default(0) }},
+          état={{ deployment_info.resources[0].status.conditions | selectattr('type', 'equalto', 'Available') | map(attribute='message') | first | default('N/A') }}
+
+    # -------------------------------------------------------------------------
+    # Tâche 6 : Lister les pods créés
+    # -------------------------------------------------------------------------
+    - name: Lister les pods du namespace {{ k8s_namespace }}
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ k8s_namespace }}"
+        label_selectors:
+          - "app={{ app_name }}"
+      register: pods_info
+
+    - name: Afficher les pods
+      ansible.builtin.debug:
+        msg: "Pod : {{ item.metadata.name }} | Phase : {{ item.status.phase }} | IP : {{ item.status.podIP | default('N/A') }}"
+      loop: "{{ pods_info.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"

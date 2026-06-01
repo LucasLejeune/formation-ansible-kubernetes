@@ -1,0 +1,10 @@
+---
+# TODO (J1) : provisionner les serveurs web (paquets de base, user, UFW...)
+- name: Provisionner les serveurs web TaskFlow
+  hosts: web
+  become: true
+  tasks:
+    - name: Mettre à jour le cache APT
+      ansible.builtin.apt:
+        update_cache: true
+    # TODO : installer les paquets, créer l'utilisateur de déploiement, configurer UFW

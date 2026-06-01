@@ -1,0 +1,29 @@
+---
+# Tâches du rôle webconfig
+# Ce rôle génère un fichier de configuration depuis un template Jinja2
+
+- name: Créer le répertoire de configuration
+  ansible.builtin.file:
+    path: "{{ app_config_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Générer le fichier de configuration depuis le template Jinja2
+  ansible.builtin.template:
+    src: app.conf.j2
+    dest: "{{ app_config_dir }}/{{ app_name }}.conf"
+    mode: "0644"
+  # Le handler est notifié uniquement si le fichier a CHANGÉ
+  # (contenu différent = Ansible détecte la différence de hash)
+  notify: Recharger la configuration de l'application
+
+- name: Vérifier que le fichier de configuration a bien été créé
+  ansible.builtin.stat:
+    path: "{{ app_config_dir }}/{{ app_name }}.conf"
+  register: config_file_stat
+
+- name: Afficher le chemin du fichier généré
+  ansible.builtin.debug:
+    msg: >
+      Fichier généré : {{ app_config_dir }}/{{ app_name }}.conf
+      (taille : {{ config_file_stat.stat.size }} octets)

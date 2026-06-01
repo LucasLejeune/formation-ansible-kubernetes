@@ -1,0 +1,9 @@
+---
+# Variables du groupe web (serveurs hébergeant TaskFlow en statique, J2)
+app_name: taskflow
+app_web_root: /var/www/taskflow
+app_server_name: taskflow.local
+app_http_port: 80
+
+# Construit localement avant déploiement (voir playbooks/deploy-app.yml)
+app_dist_local: "{{ playbook_dir }}/../dist"

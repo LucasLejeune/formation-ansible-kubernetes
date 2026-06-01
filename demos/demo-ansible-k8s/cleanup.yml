@@ -1,0 +1,22 @@
+---
+# Playbook de nettoyage : supprime le namespace (et toutes ses ressources)
+- name: Nettoyage - Supprimer le namespace demo-ansible
+  hosts: all
+  gather_facts: false
+
+  vars:
+    k8s_namespace: "demo-ansible"
+
+  tasks:
+    - name: Supprimer le namespace {{ k8s_namespace }} (state=absent)
+      kubernetes.core.k8s:
+        state: absent
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ k8s_namespace }}"
+
+    - name: Confirmer la suppression
+      ansible.builtin.debug:
+        msg: "Namespace {{ k8s_namespace }} supprimé (ou n'existait pas — idempotent)."

@@ -1,0 +1,38 @@
+---
+# Playbook de démonstration : 3 tâches idempotentes
+# Objectif : montrer que relancer deux fois donne changed → ok
+- name: Demo idempotence Ansible
+  hosts: all
+  gather_facts: true
+
+  tasks:
+    # Tâche 1 : créer un fichier avec contenu fixe
+    # => 1ère exécution : changed ; 2ème exécution : ok (fichier inchangé)
+    - name: Créer un fichier de marqueur dans /tmp
+      ansible.builtin.copy:
+        dest: /tmp/ansible-demo-marker.txt
+        content: |
+          Créé par Ansible le {{ ansible_date_time.iso8601 }}
+          Distribution : {{ ansible_distribution }} {{ ansible_distribution_version }}
+        mode: "0644"
+
+    # Tâche 2 : vérifier la présence d'un paquet sans l'installer (check implicite)
+    # On utilise ansible.builtin.stat pour rester non-destructif et vraiment idempotent
+    - name: Vérifier la présence de curl sur le système
+      ansible.builtin.stat:
+        path: /usr/bin/curl
+      register: curl_stat
+
+    - name: Afficher le résultat de la vérification de curl
+      ansible.builtin.debug:
+        msg: >
+          curl {{ 'est présent' if curl_stat.stat.exists else 'n\'est PAS installé' }}
+          à /usr/bin/curl
+
+    # Tâche 3 : afficher un fact système (toujours ok, jamais changed)
+    - name: Afficher les informations de distribution
+      ansible.builtin.debug:
+        msg: >
+          Hôte : {{ inventory_hostname }} |
+          OS : {{ ansible_distribution }} {{ ansible_distribution_version }} |
+          Kernel : {{ ansible_kernel }}

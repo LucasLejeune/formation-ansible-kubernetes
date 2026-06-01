@@ -1,0 +1,418 @@
+name: Deploy Slides to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Slides
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Marp CLI
+        run: bun add -g @marp-team/marp-cli
+
+      - name: Create output directories
+        run: |
+          mkdir -p public/slides
+          mkdir -p public/pdf
+
+      - name: Build HTML slides
+        run: |
+          for slide in slides/*.md; do
+            echo "Building $(basename $slide)..."
+            marp "$slide" --html --allow-local-files -o "public/slides/$(basename $slide .md).html"
+          done
+
+      - name: Build PDF slides
+        run: |
+          for slide in slides/*.md; do
+            echo "Building PDF for $(basename $slide)..."
+            marp "$slide" --html --allow-local-files --pdf -o "public/pdf/$(basename $slide .md).pdf"
+          done
+
+      - name: Copy additional files
+        run: |
+          # Copy TP, evaluation, and ressources folders if they exist
+          # NB : qcm-corrige.md est gitignoré → absent du checkout → jamais publié
+          [ -d tp ] && cp -r tp public/
+          [ -d evaluation ] && cp -r evaluation public/
+          [ -d ressources ] && cp -r ressources public/
+          [ -d demos ] && cp -r demos public/
+
+          # Copy README
+          cp README.md public/
+
+      - name: Create index.html
+        run: |
+          cat > public/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="fr">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Formation Ansible & Kubernetes | ForEach Academy</title>
+              <style>
+                  * {
+                      margin: 0;
+                      padding: 0;
+                      box-sizing: border-box;
+                  }
+                  body {
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                      line-height: 1.6;
+                      color: #333;
+                      background: linear-gradient(135deg, #326CE5 0%, #1e4fa0 100%);
+                      min-height: 100vh;
+                      padding: 2rem;
+                  }
+                  .container {
+                      max-width: 1200px;
+                      margin: 0 auto;
+                      background: white;
+                      border-radius: 20px;
+                      padding: 3rem;
+                      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                  }
+                  header {
+                      text-align: center;
+                      margin-bottom: 3rem;
+                      padding-bottom: 2rem;
+                      border-bottom: 3px solid #326CE5;
+                  }
+                  h1 {
+                      color: #326CE5;
+                      font-size: 2.5rem;
+                      margin-bottom: 0.5rem;
+                  }
+                  .icon {
+                      font-size: 3rem;
+                      margin-bottom: 1rem;
+                  }
+                  .subtitle {
+                      color: #666;
+                      font-size: 1.2rem;
+                  }
+                  .info {
+                      background: #f7f7f7;
+                      padding: 1.5rem;
+                      border-radius: 10px;
+                      margin: 2rem 0;
+                  }
+                  .info p {
+                      margin: 0.5rem 0;
+                  }
+                  .section {
+                      margin: 2rem 0;
+                  }
+                  .section h2 {
+                      color: #1e4fa0;
+                      margin-bottom: 1rem;
+                      font-size: 1.8rem;
+                  }
+                  .grid {
+                      display: grid;
+                      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                      gap: 1.5rem;
+                      margin-top: 1rem;
+                  }
+                  .card {
+                      background: #fff;
+                      border: 2px solid #e0e0e0;
+                      border-radius: 10px;
+                      padding: 1.5rem;
+                      transition: all 0.3s ease;
+                  }
+                  .card:hover {
+                      border-color: #326CE5;
+                      transform: translateY(-5px);
+                      box-shadow: 0 10px 30px rgba(50, 108, 229, 0.2);
+                  }
+                  .card h3 {
+                      color: #326CE5;
+                      margin-bottom: 0.5rem;
+                  }
+                  .card p {
+                      color: #666;
+                      font-size: 0.9rem;
+                      margin-bottom: 1rem;
+                  }
+                  .links {
+                      display: flex;
+                      gap: 0.5rem;
+                      flex-wrap: wrap;
+                  }
+                  .btn {
+                      display: inline-block;
+                      padding: 0.5rem 1rem;
+                      background: #326CE5;
+                      color: white;
+                      text-decoration: none;
+                      border-radius: 5px;
+                      font-size: 0.9rem;
+                      transition: background 0.3s ease;
+                  }
+                  .btn:hover {
+                      background: #1e4fa0;
+                  }
+                  .btn-secondary {
+                      background: #48bb78;
+                  }
+                  .btn-secondary:hover {
+                      background: #38a169;
+                  }
+                  .btn-pdf {
+                      background: #e53e3e;
+                  }
+                  .btn-pdf:hover {
+                      background: #c53030;
+                  }
+                  footer {
+                      text-align: center;
+                      margin-top: 3rem;
+                      padding-top: 2rem;
+                      border-top: 2px solid #e0e0e0;
+                      color: #666;
+                  }
+                  .badge {
+                      display: inline-block;
+                      padding: 0.25rem 0.75rem;
+                      background: #48bb78;
+                      color: white;
+                      border-radius: 20px;
+                      font-size: 0.8rem;
+                      margin-left: 0.5rem;
+                  }
+                  .day-separator {
+                      background: linear-gradient(90deg, #326CE5 0%, #1e4fa0 100%);
+                      color: white;
+                      padding: 1rem;
+                      border-radius: 10px;
+                      margin: 2rem 0;
+                      text-align: center;
+                      font-size: 1.3rem;
+                      font-weight: bold;
+                  }
+                  .project-highlight {
+                      background: linear-gradient(135deg, #326CE5 0%, #1e4fa0 100%);
+                      color: white;
+                      padding: 2rem;
+                      border-radius: 15px;
+                      margin: 2rem 0;
+                  }
+                  .project-highlight h3 {
+                      color: white;
+                      margin-bottom: 1rem;
+                  }
+                  .project-highlight p {
+                      color: #dbe7ff;
+                  }
+                  .project-highlight .stack {
+                      margin-top: 1rem;
+                      display: flex;
+                      gap: 0.5rem;
+                      flex-wrap: wrap;
+                  }
+                  .project-highlight .stack span {
+                      background: rgba(255, 255, 255, 0.2);
+                      padding: 0.3rem 0.8rem;
+                      border-radius: 5px;
+                      font-size: 0.85rem;
+                      border: 1px solid rgba(255, 255, 255, 0.3);
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <header>
+                      <div class="icon">⚙️ ☸️</div>
+                      <h1>Formation Ansible &amp; Kubernetes</h1>
+                      <p class="subtitle">Automatisation &amp; Orchestration d'infrastructures | ForEach Academy - M2 ESTD Architecte Web</p>
+                  </header>
+
+                  <div class="info">
+                      <p><strong>📅 Durée:</strong> 5 jours (35 heures) — 3, 4, 5 juin et 1, 2 juillet 2026</p>
+                      <p><strong>👨‍🏫 Formateur:</strong> Fabrice Claeys</p>
+                      <p><strong>🎯 Objectif:</strong> Automatiser et orchestrer des infrastructures avec Ansible et Kubernetes</p>
+                      <p><strong>📋 Prérequis:</strong> Initialisation CI, Docker</p>
+                  </div>
+
+                  <div class="project-highlight">
+                      <h3>🚀 Projet Fil Rouge : TaskFlow</h3>
+                      <p>Application déployée et orchestrée progressivement sur 5 jours : provisioning Ansible → rôles → Kubernetes → automatisation k8s → sécurisation</p>
+                      <div class="stack">
+                          <span>Ansible</span>
+                          <span>Multipass</span>
+                          <span>Docker</span>
+                          <span>k3d</span>
+                          <span>Kubernetes</span>
+                          <span>kubernetes.core</span>
+                      </div>
+                  </div>
+
+                  <div class="section">
+                      <div class="day-separator">📅 Jour 1 - Introduction à Ansible</div>
+                      <div class="grid">
+                          <div class="card">
+                              <h3>Jour 1: Introduction Ansible <span class="badge">Disponible</span></h3>
+                              <p>Architecture agentless • Inventaire • Ad-hoc • Playbooks • Idempotence</p>
+                              <div class="links">
+                                  <a href="slides/jour1-introduction-ansible.html" class="btn">🖥️ Slides HTML</a>
+                                  <a href="pdf/jour1-introduction-ansible.pdf" class="btn btn-pdf">📄 PDF</a>
+                                  <a href="tp/fil-rouge-taskflow/jour1-provisioning.md" class="btn btn-secondary">📝 TP1</a>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div class="section">
+                      <div class="day-separator">📅 Jour 2 - Déploiement avec Ansible</div>
+                      <div class="grid">
+                          <div class="card">
+                              <h3>Jour 2: Déploiement Ansible <span class="badge">Disponible</span></h3>
+                              <p>Inventaires & variables • Jinja2 • Handlers • Rôles • Vault</p>
+                              <div class="links">
+                                  <a href="slides/jour2-deploiement-ansible.html" class="btn">🖥️ Slides HTML</a>
+                                  <a href="pdf/jour2-deploiement-ansible.pdf" class="btn btn-pdf">📄 PDF</a>
+                                  <a href="tp/fil-rouge-taskflow/jour2-deploiement-role.md" class="btn btn-secondary">📝 TP2</a>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div class="section">
+                      <div class="day-separator">📅 Jour 3 - Introduction à Kubernetes</div>
+                      <div class="grid">
+                          <div class="card">
+                              <h3>Jour 3: Introduction K8s <span class="badge">Disponible</span></h3>
+                              <p>Architecture • Pods, Deployments, Services • kubectl • k3d • Manifests</p>
+                              <div class="links">
+                                  <a href="slides/jour3-introduction-kubernetes.html" class="btn">🖥️ Slides HTML</a>
+                                  <a href="pdf/jour3-introduction-kubernetes.pdf" class="btn btn-pdf">📄 PDF</a>
+                                  <a href="tp/fil-rouge-taskflow/jour3-kubernetes-manifests.md" class="btn btn-secondary">📝 TP3</a>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div class="section">
+                      <div class="day-separator">📅 Jour 4 - Kubernetes avec Ansible</div>
+                      <div class="grid">
+                          <div class="card">
+                              <h3>Jour 4: K8s avec Ansible <span class="badge">Disponible</span></h3>
+                              <p>kubernetes.core • Module k8s • Templating manifests • Idempotence</p>
+                              <div class="links">
+                                  <a href="slides/jour4-kubernetes-avec-ansible.html" class="btn">🖥️ Slides HTML</a>
+                                  <a href="pdf/jour4-kubernetes-avec-ansible.pdf" class="btn btn-pdf">📄 PDF</a>
+                                  <a href="tp/fil-rouge-taskflow/jour4-automatisation-k8s-ansible.md" class="btn btn-secondary">📝 TP4</a>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div class="section">
+                      <div class="day-separator">📅 Jour 5 - Sécurité & bonnes pratiques</div>
+                      <div class="grid">
+                          <div class="card">
+                              <h3>Jour 5: Sécurité & BP <span class="badge">Disponible</span></h3>
+                              <p>Ansible Vault • Kubernetes Secrets • ansible-lint • Probes/limits • QCM Final</p>
+                              <div class="links">
+                                  <a href="slides/jour5-securite-bonnes-pratiques.html" class="btn">🖥️ Slides HTML</a>
+                                  <a href="pdf/jour5-securite-bonnes-pratiques.pdf" class="btn btn-pdf">📄 PDF</a>
+                                  <a href="tp/fil-rouge-taskflow/jour5-secrets-finalisation.md" class="btn btn-secondary">📝 TP5</a>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div class="section">
+                      <h2>📝 Évaluation</h2>
+                      <div class="grid">
+                          <div class="card">
+                              <h3>Projet TaskFlow (100%)</h3>
+                              <p>État final du repository - 100 points</p>
+                              <div class="links">
+                                  <a href="evaluation/grille-evaluation.md" class="btn">📊 Grille</a>
+                              </div>
+                          </div>
+                          <div class="card">
+                              <h3>QCM Final (100%)</h3>
+                              <p>30 questions - 45 minutes</p>
+                              <div class="links">
+                                  <a href="evaluation/qcm.md" class="btn">📋 QCM</a>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div class="section">
+                      <h2>📚 Ressources</h2>
+                      <div class="grid">
+                          <div class="card">
+                              <h3>📖 Documentation</h3>
+                              <p>Liens et aide-mémoire</p>
+                              <div class="links">
+                                  <a href="https://docs.ansible.com/ansible/latest/" class="btn" target="_blank">Ansible</a>
+                                  <a href="https://kubernetes.io/docs/home/" class="btn" target="_blank">Kubernetes</a>
+                                  <a href="ressources/cheatsheet-ansible.md" class="btn btn-secondary">Cheatsheet Ansible</a>
+                                  <a href="ressources/cheatsheet-kubernetes.md" class="btn btn-secondary">Cheatsheet K8s</a>
+                              </div>
+                          </div>
+                          <div class="card">
+                              <h3>🚀 Projet Starter</h3>
+                              <p>Point de départ figé du TP fil rouge</p>
+                              <div class="links">
+                                  <a href="tp/fil-rouge-taskflow/" class="btn">TaskFlow Starter</a>
+                                  <a href="ressources/setup-lab.md" class="btn btn-secondary">Setup Lab</a>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <footer>
+                      <p><strong>ForEach Academy / IEF2I - Digital School of Paris</strong></p>
+                      <p>Référent: Michael MAVRODIS | michaelmavrodis@formateur.ief2i.fr</p>
+                      <p style="margin-top: 1rem; font-size: 0.9rem; color: #999;">
+                          ⚙️ Site généré automatiquement avec GitHub Actions et Marp CLI
+                      </p>
+                  </footer>
+              </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './public'
+
+  deploy:
+    name: Deploy to GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

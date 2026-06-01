@@ -1,0 +1,8 @@
+---
+# Playbook de démonstration : template Jinja2 + rôle + handler
+- name: Demo Jinja2 - Génération de configuration avec rôle Ansible
+  hosts: all
+  gather_facts: true
+
+  roles:
+    - webconfig

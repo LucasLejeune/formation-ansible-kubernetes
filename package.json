@@ -1,0 +1,23 @@
+{
+  "name": "formation-ansible-kubernetes",
+  "version": "1.0.0",
+  "description": "Formation de 35 heures sur l'automatisation et l'orchestration d'infrastructures avec Ansible et Kubernetes",
+  "scripts": {
+    "slides": "marp --input-dir slides --output dist",
+    "slides:watch": "marp --input-dir slides --output dist --watch",
+    "slides:server": "marp --input-dir slides --server",
+    "build": "marp --input-dir slides --output dist --html"
+  },
+  "devDependencies": {
+    "@marp-team/marp-cli": "^4.0.0"
+  },
+  "keywords": [
+    "formation",
+    "ansible",
+    "kubernetes",
+    "devops",
+    "teaching"
+  ],
+  "author": "Fabrice Claeys",
+  "license": "MIT"
+}

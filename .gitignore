@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+*.pdf
+
+# Ansible
+*.retry
+.vault_pass
+vault_pass.txt
+
+# Corrigé QCM — NE JAMAIS PUBLIER (dépôt public + GitHub Pages)
+evaluation/qcm-corrige.md

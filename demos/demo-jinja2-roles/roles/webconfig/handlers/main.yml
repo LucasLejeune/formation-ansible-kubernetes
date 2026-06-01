@@ -1,0 +1,11 @@
+---
+# Handlers du rôle webconfig
+# Un handler n'est exécuté que si au moins une tâche le notifie
+# ET uniquement à la FIN du playbook (pas immédiatement après la tâche)
+
+- name: Recharger la configuration de l'application
+  ansible.builtin.debug:
+    msg: >
+      [HANDLER DÉCLENCHÉ] La configuration de '{{ app_name }}' a changé.
+      En production, cette action redémarrerait le service applicatif.
+      Commande simulée : systemctl reload {{ app_name }}

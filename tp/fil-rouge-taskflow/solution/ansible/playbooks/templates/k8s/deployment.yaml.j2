@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskflow
+  namespace: {{ k8s_namespace }}
+  labels:
+    app: taskflow
+spec:
+  replicas: {{ taskflow_replicas }}
+  selector:
+    matchLabels:
+      app: taskflow
+  template:
+    metadata:
+      labels:
+        app: taskflow
+    spec:
+      containers:
+        - name: taskflow
+          image: {{ taskflow_image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: taskflow-config
+            - secretRef:
+                name: taskflow-secret
+          resources:
+            requests:
+              cpu: {{ taskflow_resources.requests.cpu }}
+              memory: {{ taskflow_resources.requests.memory }}
+            limits:
+              cpu: {{ taskflow_resources.limits.cpu }}
+              memory: {{ taskflow_resources.limits.memory }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 5

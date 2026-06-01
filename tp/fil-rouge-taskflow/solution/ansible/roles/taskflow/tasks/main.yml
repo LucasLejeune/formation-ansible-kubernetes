@@ -1,0 +1,51 @@
+---
+# Rôle taskflow — déploie l'application TaskFlow (build statique) derrière nginx.
+- name: Installer nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+
+- name: Créer la racine web de l'application
+  ansible.builtin.file:
+    path: "{{ app_web_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Copier les fichiers buildés de l'application
+  ansible.posix.synchronize:
+    src: "{{ app_dist_local }}/"
+    dest: "{{ app_web_root }}/"
+    delete: true
+    recursive: true
+  notify: Reload nginx
+
+- name: Déployer la configuration nginx de TaskFlow
+  ansible.builtin.template:
+    src: nginx-taskflow.conf.j2
+    dest: "/etc/nginx/sites-available/{{ app_name }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Activer le site TaskFlow
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ app_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ app_name }}.conf"
+    state: link
+  notify: Reload nginx
+
+- name: Désactiver le site nginx par défaut
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: S'assurer que nginx est démarré et activé au boot
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

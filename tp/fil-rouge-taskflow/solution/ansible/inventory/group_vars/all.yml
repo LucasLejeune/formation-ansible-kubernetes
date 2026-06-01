@@ -1,0 +1,12 @@
+---
+# Variables communes à tous les hôtes
+deploy_user: deploy
+timezone: Europe/Paris
+
+# Paquets de base installés au provisioning (J1)
+base_packages:
+  - curl
+  - git
+  - vim
+  - ufw
+  - htop

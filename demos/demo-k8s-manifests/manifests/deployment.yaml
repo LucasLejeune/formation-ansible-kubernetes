@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webserver
+  namespace: demo
+  labels:
+    app: webserver
+    app.kubernetes.io/managed-by: "formation-ansible-kubernetes"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: webserver
+  template:
+    metadata:
+      labels:
+        app: webserver
+    spec:
+      containers:
+        - name: nginx
+          # Image publique — aucun build nécessaire, démo auto-portante
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          # Probes de santé : bonnes pratiques K8s
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          # Limites de ressources : éviter la consommation excessive
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"

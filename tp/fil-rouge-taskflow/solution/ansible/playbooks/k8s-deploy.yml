@@ -1,0 +1,118 @@
+---
+# =============================================================================
+# TP Jour 4/5 — Déploiement de TaskFlow sur Kubernetes piloté par Ansible
+# Utilise la collection kubernetes.core (idempotent).
+# Prérequis : cluster k3d actif, collection installée
+#   ansible-galaxy collection install kubernetes.core
+#   pip install kubernetes
+# Exécution : ansible-playbook playbooks/k8s-deploy.yml --ask-vault-pass
+# =============================================================================
+- name: Déployer TaskFlow sur Kubernetes
+  hosts: k8s_control
+  gather_facts: false
+
+  vars_files:
+    - vars/k8s.yml
+    # secrets.yml est chiffré avec Ansible Vault (J5)
+    - vars/secrets.yml
+
+  tasks:
+    - name: Créer le namespace
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ k8s_namespace }}"
+            labels:
+              app: taskflow
+              env: lab
+
+    - name: Appliquer la ConfigMap
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        namespace: "{{ k8s_namespace }}"
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: taskflow-config
+          data: "{{ taskflow_config }}"
+
+    - name: Appliquer le Secret (valeurs issues du Vault)
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        namespace: "{{ k8s_namespace }}"
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: taskflow-secret
+          type: Opaque
+          stringData: "{{ taskflow_secret }}"
+      no_log: true
+
+    - name: Appliquer le Deployment (template Jinja2)
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        namespace: "{{ k8s_namespace }}"
+        template: k8s/deployment.yaml.j2
+
+    - name: Appliquer le Service
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        namespace: "{{ k8s_namespace }}"
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: taskflow
+          spec:
+            type: ClusterIP
+            selector:
+              app: taskflow
+            ports:
+              - name: http
+                port: 80
+                targetPort: 80
+
+    - name: Appliquer l'Ingress
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        namespace: "{{ k8s_namespace }}"
+        definition:
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: taskflow
+          spec:
+            rules:
+              - host: "{{ taskflow_host }}"
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: taskflow
+                          port:
+                            number: 80
+
+    - name: Attendre que le déploiement soit disponible
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        kind: Deployment
+        name: taskflow
+        namespace: "{{ k8s_namespace }}"
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 120
