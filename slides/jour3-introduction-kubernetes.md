@@ -920,7 +920,7 @@ kubectl describe ingress taskflow -n taskflow
 Formateur DevOps — ForEach Academy
 
 - GitHub : `github.com/fclaeys`
-- Email : `claeys.fabrice@gmail.com`
+- Email : `fabrice.claeys@groupe-bao.fr`
 - Slack de la formation : canal `#m2-devops`
 
 <br>

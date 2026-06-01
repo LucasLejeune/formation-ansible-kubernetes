@@ -899,7 +899,7 @@ curl http://<ip-vm>/
 
 **Fabrice Claeys**
 Formateur DevOps — ForEach Academy
-claeys.fabrice@gmail.com
+fabrice.claeys@groupe-bao.fr
 
 ---
 

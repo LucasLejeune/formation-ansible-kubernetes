@@ -1080,7 +1080,7 @@ Des questions sur le contenu de la journée ?
 **Fabrice Claeys**
 Formateur DevOps — ForEach Academy
 
-📧 fabrice@foreach.academy
+📧 fabrice.claeys@groupe-bao.fr
 
 ---
 *Formation M2 ESTD — DevOps Ansible & Kubernetes — 35h / 5 jours*

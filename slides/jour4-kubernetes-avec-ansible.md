@@ -795,6 +795,6 @@ Réécrire de A à Z le déploiement manuel du Jour 3 en un playbook Ansible ré
 
 **Fabrice Claeys**
 Formateur DevOps — ForEach Academy
-claeys.fabrice@gmail.com
+fabrice.claeys@groupe-bao.fr
 
 *Jour 5 : CI/CD avec Ansible — intégration dans un pipeline Woodpecker / GitLab CI*

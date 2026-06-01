@@ -960,7 +960,7 @@ ForEach Academy
 ---
 
 Formateur : **Fabrice Claeys**
-Contact : [fabrice.claeys@foreach.be](mailto:fabrice.claeys@foreach.be)
+Contact : [fabrice.claeys@groupe-bao.fr](mailto:fabrice.claeys@groupe-bao.fr)
 
 ---
 
