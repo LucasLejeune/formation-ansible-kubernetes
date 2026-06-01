@@ -28,10 +28,16 @@ jobs:
       - name: Install Marp CLI
         run: bun add -g @marp-team/marp-cli
 
+      - name: Install Pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-xetex texlive-fonts-recommended fonts-noto-color-emoji
+
       - name: Create output directories
         run: |
           mkdir -p public/slides
           mkdir -p public/pdf
+          mkdir -p public/tp-pdf
 
       - name: Build HTML slides
         run: |
@@ -45,6 +51,31 @@ jobs:
           for slide in slides/*.md; do
             echo "Building PDF for $(basename $slide)..."
             marp "$slide" --html --allow-local-files --pdf -o "public/pdf/$(basename $slide .md).pdf"
+          done
+
+      - name: Build TP PDFs
+        run: |
+          # Génère un PDF par énoncé de TP (projet fil rouge) + les READMEs TP
+          for tp in tp/fil-rouge-taskflow/jour*.md tp/fil-rouge-taskflow/README.md tp/README.md; do
+            [ -f "$tp" ] || continue
+            name=$(basename "$tp" .md)
+            # README.md à la racine de tp/ -> tp-overview pour éviter une collision de nom
+            case "$tp" in
+              tp/README.md) name="tp-overview" ;;
+              tp/fil-rouge-taskflow/README.md) name="fil-rouge-taskflow" ;;
+            esac
+            echo "Generating PDF for $tp -> $name.pdf ..."
+            pandoc "$tp" \
+              -o "public/tp-pdf/${name}.pdf" \
+              --pdf-engine=xelatex \
+              -V geometry:margin=2cm \
+              -V documentclass=article \
+              -V fontsize=11pt \
+              -V mainfont="DejaVu Sans" \
+              -V monofont="DejaVu Sans Mono" \
+              -V colorlinks=true \
+              --toc \
+              --highlight-style=tango
           done
 
       - name: Copy additional files
@@ -276,6 +307,7 @@ jobs:
                                   <a href="slides/jour1-introduction-ansible.html" class="btn">🖥️ Slides HTML</a>
                                   <a href="pdf/jour1-introduction-ansible.pdf" class="btn btn-pdf">📄 PDF</a>
                                   <a href="tp/fil-rouge-taskflow/jour1-provisioning.md" class="btn btn-secondary">📝 TP1</a>
+                                  <a href="tp-pdf/jour1-provisioning.pdf" class="btn btn-pdf">📥 TP1 PDF</a>
                               </div>
                           </div>
                       </div>
@@ -291,6 +323,7 @@ jobs:
                                   <a href="slides/jour2-deploiement-ansible.html" class="btn">🖥️ Slides HTML</a>
                                   <a href="pdf/jour2-deploiement-ansible.pdf" class="btn btn-pdf">📄 PDF</a>
                                   <a href="tp/fil-rouge-taskflow/jour2-deploiement-role.md" class="btn btn-secondary">📝 TP2</a>
+                                  <a href="tp-pdf/jour2-deploiement-role.pdf" class="btn btn-pdf">📥 TP2 PDF</a>
                               </div>
                           </div>
                       </div>
@@ -306,6 +339,7 @@ jobs:
                                   <a href="slides/jour3-introduction-kubernetes.html" class="btn">🖥️ Slides HTML</a>
                                   <a href="pdf/jour3-introduction-kubernetes.pdf" class="btn btn-pdf">📄 PDF</a>
                                   <a href="tp/fil-rouge-taskflow/jour3-kubernetes-manifests.md" class="btn btn-secondary">📝 TP3</a>
+                                  <a href="tp-pdf/jour3-kubernetes-manifests.pdf" class="btn btn-pdf">📥 TP3 PDF</a>
                               </div>
                           </div>
                       </div>
@@ -321,6 +355,7 @@ jobs:
                                   <a href="slides/jour4-kubernetes-avec-ansible.html" class="btn">🖥️ Slides HTML</a>
                                   <a href="pdf/jour4-kubernetes-avec-ansible.pdf" class="btn btn-pdf">📄 PDF</a>
                                   <a href="tp/fil-rouge-taskflow/jour4-automatisation-k8s-ansible.md" class="btn btn-secondary">📝 TP4</a>
+                                  <a href="tp-pdf/jour4-automatisation-k8s-ansible.pdf" class="btn btn-pdf">📥 TP4 PDF</a>
                               </div>
                           </div>
                       </div>
@@ -336,6 +371,7 @@ jobs:
                                   <a href="slides/jour5-securite-bonnes-pratiques.html" class="btn">🖥️ Slides HTML</a>
                                   <a href="pdf/jour5-securite-bonnes-pratiques.pdf" class="btn btn-pdf">📄 PDF</a>
                                   <a href="tp/fil-rouge-taskflow/jour5-secrets-finalisation.md" class="btn btn-secondary">📝 TP5</a>
+                                  <a href="tp-pdf/jour5-secrets-finalisation.pdf" class="btn btn-pdf">📥 TP5 PDF</a>
                               </div>
                           </div>
                       </div>
