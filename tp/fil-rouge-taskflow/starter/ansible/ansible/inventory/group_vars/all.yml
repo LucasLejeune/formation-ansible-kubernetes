@@ -1,0 +1,8 @@
+deploy_user: deploy
+timezone: Europe/Paris
+base_packages:
+  - curl
+  - git
+  - vim
+  - ufw
+  - htop

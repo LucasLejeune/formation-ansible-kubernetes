@@ -1,0 +1,41 @@
+1.
+multipass launch --name taskflow-web2 --cpus 1 --memory 512M --disk 5G
+multipass launch --name taskflow-web1 --cpus 1 --memory 512M --disk 5G
+
+multipass list
+Name                    State             IPv4             Image
+taskflow-web1           Running           172.28.81.122    Ubuntu 26.04 LTS
+taskflow-web2           Running           172.28.81.82     Ubuntu 26.04 LTS
+
+2.
+ssh-keygen -t ed25519 -f $env:USERPROFILE/.ssh/taskflow_lab -C "taskflow-lab"
+multipass transfer $env:USERPROFILE/.ssh/taskflow_lab.pub taskflow-web1:/tmp/taskflow_lab.pub
+multipass exec taskflow-web1 -- bash -c "mkdir -p ~/.ssh && cat /tmp/taskflow_lab.pub >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+
+multipass transfer $env:USERPROFILE/.ssh/taskflow_lab.pub taskflow-web2:/tmp/taskflow_lab.pub
+multipass exec taskflow-web2 -- bash -c "mkdir -p ~/.ssh && cat /tmp/taskflow_lab.pub >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+
+ssh -i $env:USERPROFILE/.ssh/taskflow_lab ubuntu@172.28.81.122 "hostname"
+ssh -i $env:USERPROFILE/.ssh/taskflow_lab ubuntu@172.28.81.82 "hostname"
+
+3.
+cd .\ansible\
+
+mkdir -p ansible/inventory/group_vars
+
+4.
+ansible web -m ping
+ansible web -m ansible.builtin.setup -a "filter=ansible_distribution*"
+
+5.
+ansible-playbook playbooks/provision.yml x2
+
+multipass list
+ssh -i $env:USERPROFILE.ssh/taskflow_lab ubuntu@172.28.81.122 "hostname"
+ssh -i $env:USERPROFILE/.ssh/taskflow_lab ubuntu@172.28.81.82 "hostname"
+
+ansible web -m ping
+cd ansible && ansible-galaxy collection install -r requirements.yml
+ansible web -m command -a "id deploy"
+ansible web -m command -a "ufw status" --become
+

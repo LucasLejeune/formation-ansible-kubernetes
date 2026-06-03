@@ -1,0 +1,5 @@
+app_name: taskflow
+app_web_root: /var/www/taskflow
+app_server_name: taskflow.local
+app_http_port: 80
+app_dist_local: "{{ playbook_dir }}/../dist"
