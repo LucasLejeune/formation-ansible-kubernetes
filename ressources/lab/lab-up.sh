@@ -85,12 +85,17 @@ incus_preflight() {
 incus_create() {
   local vm="$1"
   local cloudinit
-  cloudinit="$(printf '#cloud-config\nssh_authorized_keys:\n  - %s\n' "$PUBKEY")"
+  # L'image images:ubuntu/.../cloud fournit cloud-init mais PAS openssh-server :
+  # on l'installe et on l'active via cloud-init (l'image officielle Canonical,
+  # remote "ubuntu:", l'inclurait nativement mais ce remote n'est pas garanti).
+  cloudinit="$(printf '#cloud-config\npackage_update: true\npackages:\n  - openssh-server\nssh_authorized_keys:\n  - %s\nruncmd:\n  - systemctl enable --now ssh\n' "$PUBKEY")"
   if incus info "$vm" >/dev/null 2>&1; then
     log "Instance $vm déjà existante (skip création)."
   else
     log "Création de $vm (incus, VM KVM)…"
-    incus launch "images:ubuntu/${UBUNTU}" "$vm" --vm \
+    # NB: la variante ".../cloud" embarque cloud-init (et l'agent incus) ; sans
+    # elle, le user.user-data ci-dessus serait purement ignoré (image minimale).
+    incus launch "images:ubuntu/${UBUNTU}/cloud" "$vm" --vm \
       -c "limits.cpu=${VM_CPUS}" \
       -c "limits.memory=${VM_MEM}GiB" \
       -c "user.user-data=${cloudinit}" \
