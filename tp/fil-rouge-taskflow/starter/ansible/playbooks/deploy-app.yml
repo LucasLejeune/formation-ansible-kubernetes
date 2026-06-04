@@ -1,0 +1,30 @@
+---
+# =============================================================================
+# TP Jour 2 — Déploiement de TaskFlow via un rôle Ansible
+# 1) build local de l'application (dist/)  2) déploiement par le rôle taskflow
+# Exécution : ansible-playbook playbooks/deploy-app.yml
+# =============================================================================
+- name: Construire l'application TaskFlow localement
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Installer les dépendances npm
+      community.general.npm:
+        path: "{{ playbook_dir }}/.."
+        ci: true
+
+    - name: Builder l'application (vite build -> dist/)
+      ansible.builtin.command:
+        cmd: npm run build
+        chdir: "{{ playbook_dir }}/.."
+        creates: "{{ playbook_dir }}/../dist/index.html"
+
+- name: Déployer TaskFlow sur les serveurs web
+  hosts: web
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: taskflow

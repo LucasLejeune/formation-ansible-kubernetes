@@ -1,0 +1,35 @@
+Vérification TP1:
+
+cd $env:USERPROFILE/taskflow-lab/ansible
+node --version
+npm --version
+ansible web -m ping
+
+1.
+sudo apt update
+sudo apt install -y rsync
+rsync --version
+
+nano ansible/inventory/group_vars/all.yml
+cd $env:USERPROFILE/taskflow-lab/ansible
+ansible-playbook playbooks/provision.yml
+
+ansible-playbook playbooks/deploy-app.yml
+
+cd ~/taskflow-lab
+ls -la dist
+ls -la dist/index.html
+
+curl http://172.28.81.122
+curl http://172.28.81.82
+
+ansible web -m command -a "ls -l /etc/nginx/sites-available/" --become
+ansible web -m command -a "ls -l /etc/nginx/sites-enabled/" --become
+
+ansible web -m command -a "ls /etc/nginx/sites-enabled/" --become
+
+ansible web -m command -a "systemctl is-active nginx" --become
+ansible web -m command -a "systemctl is-enabled nginx" --become
+
+cd ~/taskflow-lab/ansible
+ansible-playbook playbooks/deploy-app.yml
