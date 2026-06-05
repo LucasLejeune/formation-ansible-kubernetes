@@ -1,0 +1,24 @@
+Vérification TP2:
+
+docker info
+k3d version
+kubectl version --client
+node --version
+npm --version
+
+docker build -t taskflow:1.0.0 .
+k3d cluster create taskflow --port "8080:80@loadbalancer"
+kubectl get nodes
+
+k3d image import taskflow:1.0.0 -c taskflow
+
+kubectl apply -f k8s/
+
+kubectl get pods -n taskflow
+
+kubectl get ingress -n taskflow
+
+curl http://taskflow.localhost:8080
+
+kubectl apply -f k8s/
+kubectl get pods -n taskflow
