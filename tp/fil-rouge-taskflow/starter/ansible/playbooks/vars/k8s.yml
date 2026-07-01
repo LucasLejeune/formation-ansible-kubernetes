@@ -1,0 +1,22 @@
+---
+k8s_namespace: taskflow
+k8s_kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default('~/.kube/config', true) }}"
+
+taskflow_image: taskflow:1.0.0
+taskflow_replicas: 2
+taskflow_host: taskflow.localhost
+
+taskflow_resources:
+  requests:
+    cpu: 50m
+    memory: 32Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+taskflow_config:
+  APP_ENV: production
+  APP_TITLE: "TaskFlow - Lab Kubernetes"
+
+taskflow_secret:
+  API_TOKEN: "{{ vault_taskflow_api_token | default('dev-token-please-change') }}"

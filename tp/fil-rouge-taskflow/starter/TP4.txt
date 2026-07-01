@@ -1,0 +1,23 @@
+k3d cluster list
+kubectl get nodes
+pip install kubernetes
+python3 -c "import kubernetes; print(kubernetes.__version__)"
+
+cd /ansible
+ansible-playbook playbooks/k8s-deploy.yml
+
+kubectl get pods -n taskflow
+
+kubectl get all -n taskflow
+
+kubectl get ingress -n taskflow
+
+curl http://taskflow.localhost:8080
+
+ansible-playbook playbooks/k8s-deploy.yml
+
+ansible-playbook playbooks/k8s-deploy.yml
+kubectl get pods -n taskflow
+
+ansible-playbook playbooks/k8s-deploy.yml
+kubectl get pods -n taskflow
